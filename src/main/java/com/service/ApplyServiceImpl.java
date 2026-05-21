@@ -3,7 +3,6 @@ package com.service;
 import com.dto.*;
 import com.entity.*;
 import com.enums.ApplicationStatus;
-import com.exception.ResourceConflictException;
 import com.exception.ResourceNotFoundException;
 import com.repository.*;
 import com.service.interfaces.ApplyService;
@@ -47,12 +46,13 @@ public class ApplyServiceImpl implements ApplyService {
     @Override
     public ApplicationResponseDTO start() {
         UserEntity currentUser = getCurrentUser();
-        applicationRepository.findByUser(currentUser).orElseThrow(() -> new ResourceConflictException("User already has an application"));
-        ApplicationEntity applicationEntity = ApplicationEntity.builder().
-                user(currentUser)
-                .status(ApplicationStatus.DRAFT)
-                .build();
-        return modelMapper.map(applicationRepository.saveAndFlush(applicationEntity), ApplicationResponseDTO.class);
+        return applicationRepository.findByUser(currentUser).map(e -> modelMapper.map(e,ApplicationResponseDTO.class))
+                .orElseGet(()-> {
+                    ApplicationEntity application = ApplicationEntity.builder().user(currentUser).status(ApplicationStatus.DRAFT).build();
+                    applicationRepository.saveAndFlush(application);
+                    return modelMapper.map(application,ApplicationResponseDTO.class);
+                });
+
     }
 
     @Override
@@ -115,7 +115,7 @@ public class ApplyServiceImpl implements ApplyService {
                 ? app.getDocuments() : new DocumentsEntity();
         entity.setApplication(app);
 
-        String uploadDir = "uploads/" + app.getId();
+        String uploadDir = "uploads/" + app.getUser().getFullname();
         Files.createDirectories(Paths.get(uploadDir));
 
         entity.setPassportPhoto(saveFile(requestDto.getPassportPhoto(), uploadDir, "passportPhoto"));

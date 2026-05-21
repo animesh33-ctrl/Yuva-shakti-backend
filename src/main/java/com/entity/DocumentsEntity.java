@@ -6,7 +6,7 @@ import lombok.*;
 import java.util.UUID;
 
 @Entity
-@Table(name = "documents")
+@Table(name = "documents_info")
 @Data @NoArgsConstructor
 public class DocumentsEntity {
     @Id @GeneratedValue(strategy = GenerationType.UUID)
