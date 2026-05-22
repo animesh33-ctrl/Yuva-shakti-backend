@@ -11,6 +11,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -18,10 +19,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
-@Service @RequiredArgsConstructor
+@Service @RequiredArgsConstructor @Transactional
 public class ApplyServiceImpl implements ApplyService {
 
     private final ModelMapper  modelMapper;
@@ -40,7 +42,7 @@ public class ApplyServiceImpl implements ApplyService {
 
     private ApplicationEntity getCurrentApplicationForCurrentUser(){
         UserEntity user = getCurrentUser();
-        return applicationRepository.findByUser(user).orElseThrow(() -> new ResourceNotFoundException("Username"+ user.getFullname() +" not found"));
+        return applicationRepository.findByUser(user).orElseThrow(() -> new ResourceNotFoundException("Username:"+ user.getFullname() +" not found"));
     }
 
     @Override
@@ -48,9 +50,14 @@ public class ApplyServiceImpl implements ApplyService {
         UserEntity currentUser = getCurrentUser();
         return applicationRepository.findByUser(currentUser).map(e -> modelMapper.map(e,ApplicationResponseDTO.class))
                 .orElseGet(()-> {
-                    ApplicationEntity application = ApplicationEntity.builder().user(currentUser).status(ApplicationStatus.DRAFT).build();
-                    applicationRepository.saveAndFlush(application);
-                    return modelMapper.map(application,ApplicationResponseDTO.class);
+                    ApplicationEntity application = ApplicationEntity.builder()
+                            .user(currentUser)
+                            .status(ApplicationStatus.DRAFT)
+                            .createdAt(LocalDateTime.now())
+                            .updatedAt(LocalDateTime.now())
+                            .build();
+                    ApplicationEntity saved = applicationRepository.saveAndFlush(application);
+                    return modelMapper.map(saved, ApplicationResponseDTO.class);
                 });
 
     }
@@ -132,6 +139,7 @@ public class ApplyServiceImpl implements ApplyService {
     public ApplicationResponseDTO submit() {
         ApplicationEntity app = getCurrentApplicationForCurrentUser();
         app.setStatus(ApplicationStatus.SUBMITTED);
+        applicationRepository.saveAndFlush(app);
         return modelMapper.map(app, ApplicationResponseDTO.class);
     }
 

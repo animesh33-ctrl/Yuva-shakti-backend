@@ -2,16 +2,13 @@ package com.entity;
 
 import com.enums.ApplicationStatus;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity @Table(name = "applications")
-@Data @NoArgsConstructor @Builder @AllArgsConstructor
+@NoArgsConstructor @Builder @AllArgsConstructor @Getter @Setter
 public class ApplicationEntity {
     @Id @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
