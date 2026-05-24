@@ -1,0 +1,10 @@
+package com.enums;
+
+public enum DocumentType {
+    PASSPORT_PHOTO,
+    IDENTITY_CARD,
+    TENTH_MARKSHEET,
+    TWELFTH_MARKSHEET,
+    PREVIOUS_SEMESTER_MARKSHEET,
+    SIGNATURE
+}

@@ -7,7 +7,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "financial_info")
-@Data @NoArgsConstructor
+@Getter @Setter @NoArgsConstructor
 public class FinancialInfoEntity {
     @Id @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;

@@ -2,13 +2,16 @@ package com.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.UUID;
 
 @Entity
 @Table(name = "education_info")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 public class EducationInfoEntity {
     @Id @GeneratedValue(strategy = GenerationType.UUID)

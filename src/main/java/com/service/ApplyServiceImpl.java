@@ -1,11 +1,15 @@
 package com.service;
 
+import com.config.FileStorageProperties;
 import com.dto.*;
 import com.entity.*;
 import com.enums.ApplicationStatus;
+import com.enums.DocumentType;
 import com.exception.ResourceNotFoundException;
+import com.mapper.ApplicationMapper;
 import com.repository.*;
 import com.service.interfaces.ApplyService;
+import com.storage.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,7 +23,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -34,6 +37,9 @@ public class ApplyServiceImpl implements ApplyService {
     private final FinancialRepository financialRepository;
     private final BankRepository bankRepository;
     private final DocumentRepository documentRepository;
+    private final ApplicationMapper applicationMapper;
+    private final FileStorageService fileStorageService;
+    private final FileStorageProperties fileStorageProperties;
 
     private UserEntity getCurrentUser(){
         String email = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
@@ -48,117 +54,98 @@ public class ApplyServiceImpl implements ApplyService {
     @Override
     public ApplicationResponseDTO start() {
         UserEntity currentUser = getCurrentUser();
-        return applicationRepository.findByUser(currentUser).map(e -> modelMapper.map(e,ApplicationResponseDTO.class))
+        ApplicationEntity applicationEntity =  applicationRepository.findByUser(currentUser)
                 .orElseGet(()-> {
-                    ApplicationEntity application = ApplicationEntity.builder()
-                            .user(currentUser)
-                            .status(ApplicationStatus.DRAFT)
-                            .createdAt(LocalDateTime.now())
-                            .updatedAt(LocalDateTime.now())
-                            .build();
-                    ApplicationEntity saved = applicationRepository.saveAndFlush(application);
-                    return modelMapper.map(saved, ApplicationResponseDTO.class);
+                    ApplicationEntity application = new ApplicationEntity();
+                    application.setUser(currentUser);
+                    application.setStatus(ApplicationStatus.DRAFT);
+                    return applicationRepository.save(application);
                 });
-
+        return applicationMapper.toDto(applicationEntity);
     }
 
     @Override
     public ApplicationResponseDTO personal(PersonalRequestDto personalRequestDto) {
         ApplicationEntity app = getCurrentApplicationForCurrentUser();
-        PersonalInfoEntity entity = app.getPersonalInfo() != null ? app.getPersonalInfo() : new PersonalInfoEntity();
+        PersonalInfoEntity entity = personalRepository.findByApplication(app).orElseGet(PersonalInfoEntity::new);
         modelMapper.map(personalRequestDto,entity);
-
         entity.setApplication(app);
-        app.setPersonalInfo(entity);
-
-        personalRepository.saveAndFlush(entity);
-        return modelMapper.map(app, ApplicationResponseDTO.class);
+        personalRepository.save(entity);
+        return applicationMapper.toDto(app);
     }
 
     @Override
     public ApplicationResponseDTO education(EducationRequestDto requestDto) {
         ApplicationEntity app = getCurrentApplicationForCurrentUser();
-        EducationInfoEntity entity = app.getEducationInfo() != null ? app.getEducationInfo() : new EducationInfoEntity();
+        EducationInfoEntity entity = educationalRepository.findByApplication(app).orElseGet(EducationInfoEntity::new);
         modelMapper.map(requestDto,entity);
-
         entity.setApplication(app);
-        app.setEducationInfo(entity);
-
-        educationalRepository.saveAndFlush(entity);
-        return modelMapper.map(app, ApplicationResponseDTO.class);
+        educationalRepository.save(entity);
+        return applicationMapper.toDto(app);
     }
 
     @Override
     public ApplicationResponseDTO financial(FinancialRequestDto requestDto) {
         ApplicationEntity app = getCurrentApplicationForCurrentUser();
-        FinancialInfoEntity entity = app.getFinancialInfo() != null ? app.getFinancialInfo() : new FinancialInfoEntity();
+        FinancialInfoEntity entity = financialRepository.findByApplication(app).orElseGet(FinancialInfoEntity::new);
         modelMapper.map(requestDto,entity);
-
         entity.setApplication(app);
-        app.setFinancialInfo(entity);
-
-        financialRepository.saveAndFlush(entity);
-        return modelMapper.map(app, ApplicationResponseDTO.class);
+        financialRepository.save(entity);
+        return applicationMapper.toDto(app);
     }
 
     @Override
     public ApplicationResponseDTO bank(BankRequestDto requestDto) {
         ApplicationEntity app = getCurrentApplicationForCurrentUser();
-        BankInfoEntity entity = app.getBankInfo() != null ? app.getBankInfo() : new BankInfoEntity();
+        BankInfoEntity entity = bankRepository.findByApplication(app).orElseGet(BankInfoEntity::new);
         modelMapper.map(requestDto,entity);
-
         entity.setApplication(app);
-        app.setBankInfo(entity);
-
-        bankRepository.saveAndFlush(entity);
-        return modelMapper.map(app, ApplicationResponseDTO.class);
+        bankRepository.save(entity);
+        return applicationMapper.toDto(app);
     }
 
     @Override
-    public ApplicationResponseDTO document( DocumentRequestDto requestDto) throws IOException {
-
+    public ApplicationResponseDTO document(DocumentRequestDto dto) throws IOException {
         ApplicationEntity app = getCurrentApplicationForCurrentUser();
-        DocumentsEntity entity = app.getDocuments() != null
-                ? app.getDocuments() : new DocumentsEntity();
-        entity.setApplication(app);
-
-        String uploadDir = "uploads/" + app.getUser().getFullname();
-        Files.createDirectories(Paths.get(uploadDir));
-
-        entity.setPassportPhoto(saveFile(requestDto.getPassportPhoto(), uploadDir, "passportPhoto"));
-        entity.setIdentityCard(saveFile(requestDto.getIdentityCard(), uploadDir, "identityCard"));
-        entity.setTenthMarksheet(saveFile(requestDto.getTenthMarksheet(), uploadDir, "tenthMarksheet"));
-        entity.setTwelfthMarksheet(saveFile(requestDto.getTwelfthMarksheet(), uploadDir, "twelfthMarksheet"));
-        entity.setPreviousSemesterMarksheet(saveFile(requestDto.getPreviousSemesterMarksheet(), uploadDir, "previousSemesterMarksheet"));
-
-        documentRepository.saveAndFlush(entity);
-        return modelMapper.map(app, ApplicationResponseDTO.class);
+        uploadDocument(app, dto.getPassportPhoto(), DocumentType.PASSPORT_PHOTO);
+        uploadDocument(app, dto.getIdentityCard(), DocumentType.IDENTITY_CARD);
+        uploadDocument(app, dto.getTenthMarksheet(), DocumentType.TENTH_MARKSHEET);
+        uploadDocument(app, dto.getTwelfthMarksheet(), DocumentType.TWELFTH_MARKSHEET);
+        uploadDocument(app, dto.getPreviousSemesterMarksheet(), DocumentType.PREVIOUS_SEMESTER_MARKSHEET);
+        return applicationMapper.toDto(app);
     }
 
     @Override
     public ApplicationResponseDTO submit() {
         ApplicationEntity app = getCurrentApplicationForCurrentUser();
         app.setStatus(ApplicationStatus.SUBMITTED);
-        applicationRepository.saveAndFlush(app);
-        return modelMapper.map(app, ApplicationResponseDTO.class);
+        applicationRepository.save(app);
+        return applicationMapper.toDto(app);
     }
 
     @Override
     public ApplicationResponseDTO getMyApplication() {
-        return modelMapper.map(getCurrentApplicationForCurrentUser(), ApplicationResponseDTO.class);
-    }
-
-    private String saveFile(MultipartFile file, String dir, String prefix) throws IOException {
-        String ext = file.getOriginalFilename() != null
-                ? file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf('.'))
-                : "";
-        String filename = prefix + "_" + UUID.randomUUID() + ext;
-        Path path = Paths.get(dir, filename);
-        Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
-        return path.toString();
+        return applicationMapper.toDto(getCurrentApplicationForCurrentUser());
     }
 
 
+
+    private void uploadDocument(ApplicationEntity app, MultipartFile file, DocumentType type)
+            throws IOException {
+
+        if (file == null || file.isEmpty()) {
+            return;
+        }
+        DocumentEntity entity = documentRepository.findByApplicationAndDocumentType(app, type).orElse(new DocumentEntity());
+        entity.setApplication(app);
+        entity.setDocumentType(type);
+        String uploadDir = fileStorageProperties.getUploadDir() + app.getUser().getId();
+        Files.createDirectories(
+                Paths.get(uploadDir));
+        String path = fileStorageService.save(file, uploadDir, type.name());
+        entity.setFileUrl(path);
+        documentRepository.save(entity);
+    }
 
 
 }

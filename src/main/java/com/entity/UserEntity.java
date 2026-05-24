@@ -2,10 +2,8 @@ package com.entity;
 
 import com.enums.Role;
 import jakarta.persistence.*;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -19,6 +17,7 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @Table(name = "users")
+@NoArgsConstructor
 public class UserEntity  implements UserDetails {
 
     @Id
@@ -43,6 +42,9 @@ public class UserEntity  implements UserDetails {
 
     @Column(name = "locked_until")
     private LocalDateTime lockedUntil;
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 
     @Override
     public @NullMarked Collection<? extends GrantedAuthority> getAuthorities() {

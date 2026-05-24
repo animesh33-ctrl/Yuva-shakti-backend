@@ -1,4 +1,4 @@
-package com.security;
+package com.service;
 
 import com.config.JwtConfig;
 import com.dto.LoginRequestDTO;
@@ -30,7 +30,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -48,10 +47,8 @@ public class AuthService {
     private final TokenBlacklistService tokenBlacklistService;
 
     public SignUpResponseDto signUp(SignUpRequestDto signUpRequestDto) {
-        Optional<UserEntity> userEntity = userRepository.findByFullname(signUpRequestDto.getFullname());
-        if(userEntity.isPresent()) {
-            throw new ResourceConflictException("User with this fullname "+signUpRequestDto.getFullname()
-                    +" already exists");
+        if(userRepository.findByEmail(signUpRequestDto.getEmail()).isPresent()) {
+            throw new ResourceConflictException("Email already exists");
         }
         UserEntity newUser = modelMapper.map(signUpRequestDto, UserEntity.class);
         newUser.setPassword(passwordEncoder.encode(signUpRequestDto.getPassword()));

@@ -3,14 +3,13 @@ package com.controller;
 import com.advice.ApiResponse;
 import com.dto.LoginRequestDTO;
 import com.dto.SignUpRequestDto;
-import com.security.AuthService;
+import com.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,14 +23,14 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/signup")
-    public ResponseEntity<?> signUp(@RequestBody @Valid SignUpRequestDto signUpRequestDto){
-        return new ResponseEntity<>(authService.signUp(signUpRequestDto),  HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<?>> signUp(@RequestBody @Valid SignUpRequestDto signUpRequestDto){
+        return new ResponseEntity<>(new ApiResponse<>(authService.signUp(signUpRequestDto)),  HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDTO loginRequestDTO,
+    public ResponseEntity<ApiResponse<?>> login(@RequestBody @Valid LoginRequestDTO loginRequestDTO,
                                    HttpServletResponse httpServletResponse){
-        return new ResponseEntity<>(authService.login(loginRequestDTO, httpServletResponse), HttpStatus.OK);
+        return new ResponseEntity<>(new ApiResponse<>(authService.login(loginRequestDTO, httpServletResponse)), HttpStatus.OK);
     }
 
     @PostMapping("/refresh")
@@ -39,7 +38,6 @@ public class AuthController {
         return new ResponseEntity<>(new ApiResponse<>(authService.refreshToken(request,httpServletResponse)), HttpStatus.OK);
     }
 
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<?>> logout(HttpServletRequest request, HttpServletResponse httpServletResponse){
         authService.logout(request,httpServletResponse);

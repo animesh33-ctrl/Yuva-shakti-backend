@@ -4,7 +4,7 @@ package com.controller;
 import com.advice.ApiResponse;
 import com.dto.*;
 import com.service.interfaces.ApplyService;
-import io.lettuce.core.search.arguments.AggregateArgs;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,40 +23,29 @@ public class ApplyController {
     private final ApplyService applyService;
 
     @PostMapping("/start")
-    public ResponseEntity<?> start() {
+    public ResponseEntity<ApiResponse<ApplicationResponseDTO>> start() {
         return ResponseEntity.ok(new ApiResponse<>(applyService.start()));
     }
 
     @PutMapping("/personal")
-    public ResponseEntity<?> personal(@RequestBody  PersonalRequestDto requestDto) {
+    public ResponseEntity<ApiResponse<ApplicationResponseDTO>> personal(@RequestBody @Valid PersonalRequestDto requestDto) {
         return new ResponseEntity<>(new ApiResponse<>(applyService.personal(requestDto)), HttpStatus.OK);
     }
 
     @PutMapping("/education")
-    public ResponseEntity<?> education(@RequestBody EducationRequestDto requestDto) {
+    public ResponseEntity<ApiResponse<ApplicationResponseDTO>> education(@RequestBody @Valid EducationRequestDto requestDto) {
         return new ResponseEntity<>(new ApiResponse<>(applyService.education(requestDto)), HttpStatus.OK);
     }
     @PutMapping("/financial")
-    public ResponseEntity<?> financial(@RequestBody FinancialRequestDto requestDto) {
+    public ResponseEntity<ApiResponse<ApplicationResponseDTO>> financial(@RequestBody @Valid FinancialRequestDto requestDto) {
         return new ResponseEntity<>(new ApiResponse<>(applyService.financial(requestDto)), HttpStatus.OK);
     }
     @PutMapping("/bank")
-    public ResponseEntity<?> bank(@RequestBody BankRequestDto requestDto) {
+    public ResponseEntity<ApiResponse<ApplicationResponseDTO>> bank(@RequestBody @Valid BankRequestDto requestDto) {
         return new ResponseEntity<>(new ApiResponse<>(applyService.bank(requestDto)), HttpStatus.OK);
     }
     @PostMapping("/documents")
-    public ResponseEntity<?> document(@RequestParam MultipartFile passportPhoto,
-                                      @RequestParam MultipartFile identityCard,
-                                      @RequestParam MultipartFile tenthMarksheet,
-                                      @RequestParam MultipartFile twelfthMarksheet,
-                                      @RequestParam MultipartFile previousSemesterMarksheet) throws IOException {
-        DocumentRequestDto requestDto = DocumentRequestDto.builder().
-                passportPhoto(passportPhoto).
-                identityCard(identityCard).
-                tenthMarksheet(tenthMarksheet).
-                twelfthMarksheet(twelfthMarksheet).
-                previousSemesterMarksheet(previousSemesterMarksheet).
-                build();
+    public ResponseEntity<ApiResponse<ApplicationResponseDTO>> document(@ModelAttribute DocumentRequestDto requestDto) throws IOException {
         return new ResponseEntity<>(new ApiResponse<>(applyService.document(requestDto)), HttpStatus.OK);
     }
 
